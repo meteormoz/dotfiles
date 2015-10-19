@@ -15,6 +15,9 @@ set smartcase
 set hidden
 set wildmode=longest,list
 set history=200
+colorscheme ron
+" for vim-latex
+set winaltkeys=no
 
 " cygwin
 if has('win32unix')
@@ -37,13 +40,12 @@ inoremap {<Enter> {}<Left><CR><ESC><S-o>
 inoremap { {}<Left>
 inoremap {<Space> {<Space><Space>}<Left><Left>
 inoremap {" {""}<Left><Left>
-inoremap @ []<Left>
 inoremap [ []<Left>
 inoremap ( ()<Left>
 inoremap ' ''<Left>
 inoremap " ""<Left>
 inoremap ` ``<Left>
-inoremap jk <ESC>
+inoremap jk <Esc>
 
 cnoremap jk <C-u><C-h>
 
@@ -57,6 +59,10 @@ nnoremap <Space>l $
 vnoremap <Space>h ^
 vnoremap <Space>l $
 
+" 保存
+nnoremap <C-s> :<C-u>w<CR>
+inoremap <C-s> <Esc>:<C-u>w<CR>
+
 " コマンドラインモードのフィルタ
 cnoremap <C-p> <Up>
 cnoremap <C-n> <Down>
@@ -69,10 +75,58 @@ nnoremap <Space>O :<C-u>for i in range(v:count1) \| silent! call append(line('.'
 nnoremap <Space>/ :<C-u>silent! call ToggleComment(line('.') - 1, line('.') + v:count1)<CR>
 vnoremap <Space>/ :<C-u>silent! call ToggleComment(line("'<") - 1, line("'>") + 1)<CR>
 
-"--enter branckets"
+" 括弧内に入る
 nnoremap <Space>( :<C-u>call EnterBrankets()<CR>
 
+" ------------------------
+" Start Neobundle setting.
+" ------------------------
+
+set runtimepath+=~/.vim/bundle/neobundle.vim/
+
+" http://catcher-in-the-tech.net/1063/
+call neobundle#begin(expand('~/.vim/bundle/'))
+NeoBundleFetch 'Shougo/neobundle.vim'
+
+" ここに追加するプラグインを挿入する．
+NeoBundle 'vim-latex/vim-latex'
+
+call neobundle#end()
+
+filetype plugin indent on
+
+NeoBundleCheck
+
+" ----------------------
+" End Neobundle setting.
+" ----------------------
+
+" ---------
+" vim-latex
+" ---------
+
+filetype plugin on
+filetype indent on
+set shellslash
+set grepprg=grep\ -nH\ $*
+
+" http://d.hatena.ne.jp/mFumi/20090901/1251779763
+let g:tex_flavor='latex'
+let g:Tex_CompileRule_dvi = 'platex --interaction=nonstopmode $*'
+let g:Tex_BibtexFlavor = 'jbibtex'
+let g:Tex_CompileRule_pdf = 'dvipdfmx $*.dvi'
+
+let g:Tex_ViewRule_dvi = '/cygdrive/c/dviout/dviout.exe'
+let g:Tex_ViewRule_pdf = '/cygdrive/c/Program\ Files\ \(x86\)/SumatraPDF/SumatraPDF.exe'
+
+let g:latex_latexmk_continuous = 1
+" let g:latex_latexmk_background = 1
+let g:latex_latexmk_options = '-pdfdvi'
+
+" -------
 " AutoCmd
+" -------
+
 augroup MyAutoCmd
 	"--Initialize--"
 	autocmd!
@@ -81,8 +135,10 @@ augroup MyAutoCmd
 	autocmd InsertLeave *.c call CompletBrackets(getline('.'))
 	autocmd InsertLeave *.cpp call CompletBrackets(getline('.'))
 
+	" InsertLeaveイベント後、カーソルの自動移動
 	autocmd InsertLeave *.c while matchstr(getline('.'), '.', col('.')) =~# '\v("|''|\)|]|>)' | call cursor(getline('.'), col('.')+1) | endwhile
 	autocmd InsertLeave *.cpp while matchstr(getline('.'), '.', col('.')) =~# '\v("|''|\)|]|\>)' | call cursor(getline('.'), col('.')+1) | endwhile
+	autocmd InsertLeave *.java while matchstr(getline('.'), '.', col('.')) =~# '\v("|''|\)|]|>)' | call cursor(getline('.'), col('.')+1) | endwhile
 
 	" クオートの補完とカーソルの移動
 	" 冗長?
@@ -100,14 +156,17 @@ augroup MyAutoCmd
 	" autocmd InsertCharPre *.vim,*.vimrc call CatInputChar('"', ' ')
 
 	" LaTeX
-	"autocmd InsertLeave *.tex if getline('.') =~# '\\begin{.*}\s*$' | t. | s/begin/end/ | endif
+	" autocmd InsertLeave *.tex if getline('.') =~# '\\begin{.*}\s*$' | t. | s/begin/end/ | endif
 
 	"--QuickFix--"
 	autocmd QuickFixCmdPost *grep* cwindow
 	autocmd QuickFixCmdPost vim* cwindow
 augroup END
 
-"--Functions--"
+" ---------
+" Functions
+" ---------
+
 function! s:IsComment(str)
 	if matchstr(a:str, '\V/*') ==# '/*'
 		return 1
@@ -183,22 +242,22 @@ function! CompletBrackets(line)
 	 \ a:line =~# '^\s*for\s*(.*;.*;.*)\s*[^{]*$'
 		if (a:line =~# 'if')
 			if (a:line =~# 'else')
-				let str = matchstr(a:line, '\s*else\s*if\s*(.*)$') 
+				let str = matchstr(a:line, '\s*else\s*if\s*(.*)') 
 			else
-				let str = matchstr(a:line, '\s*if\s*(.*)$') 
+				let str = matchstr(a:line, '\s*if\s*(.*)') 
 			endif
 		elseif (a:line =~# 'else')
-			let str = matchstr(a:line, '\s*else$') 
+			let str = matchstr(a:line, '\s*else') 
 		elseif (a:line =~# 'for')
-			let str = matchstr(a:line, '\s*for\s*(.*)$') 
+			let str = matchstr(a:line, '\s*for\s*(.*)') 
 		elseif (a:line =~# '\s*while')
-			let str = matchstr(a:line, '\s*while\s*(.*)$') 
+			let str = matchstr(a:line, '\s*while\s*(.*)') 
 		elseif (a:line =~# 'do')
-			let str = matchstr(a:line, '\s*do$') 
+			let str = matchstr(a:line, '\s*do') 
 		endif
 
 		" debug
-		echomsg "str..." . str 
+		echomsg "str..'" . str . "'"
 
 		" 文字列の正規化をやめよう
 		let str = str . ' {'
@@ -230,6 +289,7 @@ function! EnterBrankets()
 		startinsert
 	endif
 endfunction
+
 
 " Scouter
 function! Scouter(file, ...)
